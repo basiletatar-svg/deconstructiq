@@ -1,3 +1,8 @@
+bash
+
+cat /home/claude/deconstructiq/api/analyze.js
+Sortie
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -55,7 +60,7 @@ Matériaux à détecter : cloisons amovibles, vitrages, murs mobiles, parquet, b
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,3 +90,19 @@ Matériaux à détecter : cloisons amovibles, vitrages, murs mobiles, parquet, b
     return res.status(500).json({ error: err.message });
   }
 }
+Terminé
+Le fichier a déjà gemini-2.0-flash — c'est bien. Le problème vient d'ailleurs. Ferme la barre de recherche (touche Échap), puis fais défiler jusqu'à la ligne 57 environ — tu cherches cette partie :
+
+v1beta/models/gemini-2.0-flash
+Remplace v1beta par v1 — c'est ça le vrai problème. La version de l'API a changé.
+
+La ligne doit devenir :
+
+https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}
+Fais le changement et Commit changes.
+
+
+
+
+
+
