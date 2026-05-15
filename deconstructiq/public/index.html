@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DéconstructIQ — Passeport Matériaux IA</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --noir: #0a0a0a; --blanc: #f5f3ee; --or: #c8a96e; --or-clair: #e8d5a8;
+  --gris: #8a8a82; --surface: #141410; --surface2: #1e1d18; --surface3: #2a2920; --vert: #4a7c59;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--noir); color:var(--blanc); font-family:'DM Sans',sans-serif; min-height:100vh; }
+
+.header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem; border-bottom:1px solid rgba(200,169,110,0.15); background:var(--surface); position:sticky; top:0; z-index:100; }
+.logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem; letter-spacing:-0.02em; }
+.logo span { color:var(--or); }
+.logo-sub { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--gris); letter-spacing:0.12em; text-transform:uppercase; margin-top:2px; }
+.status { display:flex; align-items:center; gap:6px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--gris); }
+.dot { width:7px; height:7px; border-radius:50%; background:var(--vert); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.nav { display:flex; background:var(--surface); border-bottom:1px solid rgba(200,169,110,0.1); padding:0 1.5rem; }
+.tab { padding:0.8rem 1.25rem; font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--gris); cursor:pointer; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; transition:all 0.2s; }
+.tab:hover { color:var(--blanc); }
+.tab.active { color:var(--or); border-bottom-color:var(--or); }
+
+.layout { display:grid; grid-template-columns:1fr 370px; min-height:calc(100vh - 108px); }
+.left { padding:1.5rem; border-right:1px solid rgba(200,169,110,0.08); overflow-y:auto; }
+.right { background:var(--surface); padding:1.5rem; overflow-y:auto; max-height:calc(100vh - 108px); }
+.panel-title { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--or); margin-bottom:1.25rem; }
+
+.drop-zone { border:1.5px dashed rgba(200,169,110,0.3); border-radius:10px; padding:2.5rem 1.5rem; text-align:center; cursor:pointer; transition:all 0.3s; background:rgba(200,169,110,0.02); }
+.drop-zone:hover, .drop-zone.over { border-color:var(--or); background:rgba(200,169,110,0.06); }
+.drop-icon { font-size:2.2rem; margin-bottom:0.75rem; }
+.drop-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:0.4rem; }
+.drop-sub { font-size:0.78rem; color:var(--gris); line-height:1.6; }
+
+.preview-wrap { display:none; position:relative; border-radius:10px; overflow:hidden; background:var(--surface2); height:250px; }
+.preview-wrap.show { display:block; }
+.preview-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+.preview-over { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,0.8)); padding:1rem; display:flex; justify-content:space-between; align-items:flex-end; }
+.fname { font-family:'DM Mono',monospace; font-size:0.62rem; color:rgba(245,243,238,0.6); }
+.btn-reset { font-family:'DM Mono',monospace; font-size:0.62rem; padding:4px 11px; background:rgba(200,169,110,0.15); border:1px solid var(--or); color:var(--or); border-radius:5px; cursor:pointer; transition:all 0.2s; }
+.btn-reset:hover { background:rgba(200,169,110,0.3); }
+
+.btn-analyze { width:100%; margin-top:1rem; padding:0.95rem; background:var(--or); color:var(--noir); border:none; border-radius:9px; font-family:'Syne',sans-serif; font-size:0.92rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.btn-analyze:hover:not(:disabled) { background:var(--or-clair); transform:translateY(-1px); }
+.btn-analyze:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-analyze.loading { background:var(--surface3); color:var(--or); border:1px solid rgba(200,169,110,0.4); }
+
+.loc-row { margin-top:1rem; display:flex; align-items:center; gap:10px; background:var(--surface2); border-radius:8px; padding:0.85rem 1rem; border:1px solid rgba(200,169,110,0.08); }
+.loc-label { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--gris); letter-spacing:0.1em; text-transform:uppercase; }
+.loc-value { font-size:0.82rem; color:var(--blanc); margin-top:2px; }
+.btn-loc { font-family:'DM Mono',monospace; font-size:0.62rem; padding:5px 11px; background:transparent; border:1px solid rgba(200,169,110,0.25); color:var(--or); border-radius:5px; cursor:pointer; margin-left:auto; white-space:nowrap; transition:all 0.2s; }
+.btn-loc:hover { border-color:var(--or); }
+
+.mat-hint { margin-top:1rem; padding:0.85rem; background:rgba(200,169,110,0.03); border:1px dashed rgba(200,169,110,0.12); border-radius:8px; }
+.mat-hint-label { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--gris); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.4rem; }
+.mat-hint-text { font-size:0.72rem; color:var(--gris); line-height:1.7; }
+
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; text-align:center; color:var(--gris); }
+.empty-icon { font-size:2.5rem; opacity:0.3; margin-bottom:1rem; }
+
+.sk { background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; margin-bottom:8px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+.sum-desc { background:var(--surface2); border-radius:8px; padding:0.9rem; margin-bottom:1rem; border:1px solid rgba(200,169,110,0.08); font-size:0.82rem; color:var(--blanc); line-height:1.6; }
+.sum-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:1.25rem; }
+.sum-card { background:var(--surface2); border-radius:8px; padding:0.85rem; border:1px solid rgba(200,169,110,0.08); }
+.sum-lbl { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--gris); letter-spacing:0.1em; text-transform:uppercase; }
+.sum-val { font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:700; color:var(--or); margin-top:3px; }
+.sec-title { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--gris); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.65rem; }
+
+.mat-card { background:var(--surface2); border-radius:9px; padding:0.9rem 1rem; margin-bottom:8px; border:1px solid rgba(200,169,110,0.06); transition:border-color 0.2s; animation:fadeUp 0.35s ease both; }
+.mat-card:hover { border-color:rgba(200,169,110,0.2); }
+.mat-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:0.5rem; }
+.mat-emoji { font-size:1.2rem; min-width:24px; padding-top:1px; }
+.mat-name { font-family:'Syne',sans-serif; font-size:0.88rem; font-weight:700; color:var(--blanc); }
+.mat-cat { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--gris); text-transform:uppercase; letter-spacing:0.05em; margin-top:1px; }
+.mat-price { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; color:var(--or); white-space:nowrap; }
+.mat-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:0.5rem; }
+.tag { font-family:'DM Mono',monospace; font-size:0.58rem; padding:2px 7px; border-radius:3px; }
+.t-exc { background:rgba(74,124,89,0.2); color:#7ec99a; border:1px solid rgba(74,124,89,0.3); }
+.t-bon { background:rgba(42,92,138,0.2); color:#7ab5e8; border:1px solid rgba(42,92,138,0.3); }
+.t-moy { background:rgba(212,104,42,0.2); color:#e8a070; border:1px solid rgba(212,104,42,0.3); }
+.t-rec { background:rgba(200,169,110,0.15); color:var(--or); border:1px solid rgba(200,169,110,0.25); }
+.t-non { background:rgba(192,57,43,0.15); color:#e87070; border:1px solid rgba(192,57,43,0.25); }
+.conf-row { display:flex; align-items:center; gap:7px; margin-bottom:0.45rem; }
+.conf-lbl { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--gris); min-width:55px; }
+.conf-bar { flex:1; height:3px; background:rgba(255,255,255,0.07); border-radius:2px; overflow:hidden; }
+.conf-fill { height:100%; background:var(--or); border-radius:2px; }
+.conf-pct { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--or); min-width:28px; text-align:right; }
+.mat-desc { font-size:0.75rem; color:var(--gris); line-height:1.6; border-top:1px solid rgba(255,255,255,0.05); padding-top:0.45rem; }
+
+.buyers-wrap { margin-top:1.25rem; border-top:1px solid rgba(200,169,110,0.1); padding-top:1.25rem; }
+.buyer-card { background:var(--surface3); border-radius:8px; padding:0.75rem 0.9rem; margin-bottom:7px; border:1px solid rgba(200,169,110,0.06); display:flex; align-items:center; gap:10px; animation:fadeUp 0.35s ease both; }
+.buyer-av { width:34px; height:34px; border-radius:7px; background:rgba(200,169,110,0.1); display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.buyer-name { font-size:0.82rem; font-weight:500; color:var(--blanc); }
+.buyer-meta { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--gris); }
+.buyer-dist { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--or); margin-left:auto; white-space:nowrap; }
+
+.btn-passport { width:100%; margin-top:1.25rem; padding:0.85rem; background:transparent; border:1.5px solid var(--or); color:var(--or); border-radius:9px; font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.btn-passport:hover { background:rgba(200,169,110,0.1); transform:translateY(-1px); }
+
+.regu-wrap { padding:1.5rem; max-width:760px; }
+.regu-card { background:var(--surface2); border-radius:10px; padding:1.25rem; margin-bottom:0.85rem; border:1px solid rgba(200,169,110,0.08); }
+.regu-badge { display:inline-block; font-family:'DM Mono',monospace; font-size:0.58rem; padding:2px 9px; border-radius:3px; margin-bottom:0.6rem; letter-spacing:0.06em; }
+.b-active { background:rgba(74,124,89,0.2); color:#7ec99a; border:1px solid rgba(74,124,89,0.3); }
+.b-soon { background:rgba(212,104,42,0.2); color:#e8a070; border:1px solid rgba(212,104,42,0.3); }
+.regu-title { font-family:'Syne',sans-serif; font-size:0.95rem; font-weight:700; margin-bottom:0.4rem; }
+.regu-desc { font-size:0.78rem; color:var(--gris); line-height:1.7; }
+
+.toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface3); border:1px solid rgba(200,169,110,0.3); border-radius:8px; padding:0.7rem 1.25rem; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--or); transition:transform 0.3s; z-index:999; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+.view { display:none; }
+.view.active { display:block; }
+#fileInput { display:none; }
+
+.hist-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1rem; padding:1.5rem; }
+.hist-card { background:var(--surface2); border-radius:10px; overflow:hidden; border:1px solid rgba(200,169,110,0.08); cursor:pointer; transition:all 0.2s; }
+.hist-card:hover { border-color:rgba(200,169,110,0.3); transform:translateY(-2px); }
+.hist-thumb { height:130px; overflow:hidden; }
+.hist-thumb img { width:100%; height:100%; object-fit:cover; }
+.hist-info { padding:0.85rem; }
+.hist-name { font-family:'Syne',sans-serif; font-size:0.88rem; font-weight:700; }
+.hist-meta { font-family:'DM Mono',monospace; font-size:0.62rem; color:var(--gris); margin-top:2px; }
+.hist-val { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--or); margin-top:6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Déconstr<span>uct</span>IQ</div>
+    <div class="logo-sub">Passeport Matériaux IA</div>
+  </div>
+  <div class="status"><div class="dot"></div>IA Gemini active</div>
+</div>
+
+<div class="nav">
+  <button class="tab active" onclick="showView('scanner',this)">⬡ Scanner</button>
+  <button class="tab" onclick="showView('historique',this)">◎ Historique</button>
+  <button class="tab" onclick="showView('reglementaire',this)">▣ Réglementation</button>
+</div>
+
+<div id="view-scanner" class="view active">
+  <div class="layout">
+    <div class="left">
+      <div class="panel-title">⬡ Analyse du chantier</div>
+      <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+
+      <div class="drop-zone" id="dropZone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="drop-icon">📸</div>
+        <div class="drop-title">Déposer ou sélectionner une photo</div>
+        <div class="drop-sub">Chantier · Bureau · Bâtiment à rénover<br>JPG · PNG · WEBP · HEIC</div>
+      </div>
+
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" src="" alt="Aperçu">
+        <div class="preview-over">
+          <span class="fname" id="fname"></span>
+          <button class="btn-reset" onclick="resetScan()">↺ Nouvelle photo</button>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="btnAnalyze" disabled onclick="analyze()">
+        ◈ Analyser les matériaux
+      </button>
+
+      <div class="loc-row">
+        <div style="flex:1">
+          <div class="loc-label">Localisation chantier</div>
+          <div class="loc-value" id="locVal">Non définie</div>
+        </div>
+        <button class="btn-loc" onclick="getLocation()">📍 Localiser</button>
+      </div>
+
+      <div class="mat-hint">
+        <div class="mat-hint-label">Matériaux reconnus par l'IA</div>
+        <div class="mat-hint-text">Cloisons amovibles · Vitrages · Murs mobiles · Parquet · Béton · Chape · Carrelage · Laine de roche · Laine de verre · Faux-plafonds · Plaques de plâtre · Menuiseries bois/alu · Portes · Fenêtres · Acier · Câblage · Mobilier · Isolation · Structures métalliques · ...</div>
+      </div>
+    </div>
+
+    <div class="right" id="rightPanel">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">◈</div>
+        <div style="font-size:0.8rem;line-height:1.8">Déposez une photo de chantier<br>pour lancer l'analyse IA<br><br><span style="font-family:'DM Mono',monospace;font-size:0.62rem;opacity:0.5">Identification · Valorisation · Acheteurs</span></div>
+      </div>
+      <div id="results" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="view-historique" class="view">
+  <div class="panel-title" style="padding:1.5rem 1.5rem 0">◎ Historique des audits</div>
+  <div class="hist-grid" id="histGrid">
+    <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--gris)">
+      <div style="font-size:2rem;opacity:0.25;margin-bottom:0.75rem">◎</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.75rem">Aucun audit enregistré</div>
+    </div>
+  </div>
+</div>
+
+<div id="view-reglementaire" class="view">
+  <div class="regu-wrap">
+    <div class="panel-title">▣ Cadre réglementaire — Réemploi des matériaux</div>
+    <div class="regu-card"><div class="regu-badge b-active">EN VIGUEUR · SUISSE</div><div class="regu-title">LPE — Loi sur la protection de l'environnement</div><div class="regu-desc">L'art. 30 LPE impose la valorisation des déchets. Les matériaux récupérables doivent être réemployés ou recyclés avant mise en décharge. Obligation documentaire pour les chantiers &gt;200m².</div></div>
+    <div class="regu-card"><div class="regu-badge b-active">EN VIGUEUR · SUISSE</div><div class="regu-title">SIA 430 — Gestion des matériaux de construction</div><div class="regu-desc">Norme suisse exigeant un concept de valorisation pour tout projet de démolition. Le Passeport Matériaux DéconstructIQ répond directement à cette obligation documentaire.</div></div>
+    <div class="regu-card"><div class="regu-badge b-soon">2025 · FRANCE</div><div class="regu-title">RE2020 — Réemploi obligatoire bâtiment neuf</div><div class="regu-desc">La réglementation environnementale 2020 impose des seuils croissants de matériaux réemployés dans les constructions neuves.</div></div>
+    <div class="regu-card"><div class="regu-badge b-soon">2027 · UE</div><div class="regu-title">EU Taxonomy — Construction durable</div><div class="regu-desc">Les projets financés par capitaux EU devront démontrer un taux de réemploi certifié.</div></div>
+    <div class="regu-card"><div class="regu-badge b-soon">2030 · UE</div><div class="regu-title">Construction Products Regulation (CPR révisé)</div><div class="regu-desc">Obligation de passeport produit numérique pour tout matériau de construction mis sur le marché européen. DéconstructIQ anticipe ce standard de 5 ans.</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ⚠️ EN PRODUCTION : cette clé est appelée via /api/analyze (backend sécurisé)
+// En local (fichier HTML), on appelle Gemini directement pour tester
+const GEMINI_KEY = 'REMPLACER_PAR_TA_CLE';
+const USE_BACKEND = window.location.hostname !== 'localhost' && window.location.protocol !== 'file:';
+
+let b64=null, fileType=null, userLoc=null, history=[];
+
+function showView(id,el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+function onDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('over');}
+function onDragLeave(){document.getElementById('dropZone').classList.remove('over');}
+function onDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadFile(f);}
+function handleFile(e){const f=e.target.files[0];if(f)loadFile(f);}
+
+function loadFile(f){
+  fileType=f.type||'image/jpeg';
+  document.getElementById('fname').textContent=f.name;
+  const r=new FileReader();
+  r.onload=e=>{
+    b64=e.target.result.split(',')[1];
+    document.getElementById('previewImg').src=e.target.result;
+    document.getElementById('dropZone').style.display='none';
+    document.getElementById('previewWrap').classList.add('show');
+    document.getElementById('btnAnalyze').disabled=false;
+  };
+  r.readAsDataURL(f);
+  setResult(null);
+}
+
+function resetScan(){
+  b64=null;fileType=null;
+  document.getElementById('dropZone').style.display='block';
+  document.getElementById('previewWrap').classList.remove('show');
+  document.getElementById('btnAnalyze').disabled=true;
+  document.getElementById('fileInput').value='';
+  document.getElementById('results').style.display='none';
+  document.getElementById('emptyState').style.display='flex';
+}
+
+function getLocation(){
+  if(!navigator.geolocation){toast('Non supporté');return;}
+  document.getElementById('locVal').textContent='Localisation...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLoc={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLoc.lat}&lon=${userLoc.lng}&format=json`)
+      .then(r=>r.json()).then(d=>{
+        const city=d.address.city||d.address.town||d.address.village||'Zone';
+        document.getElementById('locVal').textContent=city+' '+(d.address.postcode||'');
+        toast('📍 Localisé : '+city);
+      }).catch(()=>{document.getElementById('locVal').textContent=userLoc.lat.toFixed(3)+', '+userLoc.lng.toFixed(3);});
+  },()=>{document.getElementById('locVal').textContent='Accès refusé';});
+}
+
+async function analyze(){
+  if(!b64)return;
+  const btn=document.getElementById('btnAnalyze');
+  btn.disabled=true; btn.classList.add('loading'); btn.textContent='◈ Analyse IA en cours...';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('results').style.display='block';
+  document.getElementById('results').innerHTML=`
+    <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--gris);margin-bottom:0.75rem">Identification en cours...</div>
+    <div class="sk" style="height:70px"></div>
+    <div class="sk" style="height:45px"></div>
+    <div class="sk" style="height:88px"></div>
+    <div class="sk" style="height:88px"></div>
+    <div class="sk" style="height:88px"></div>`;
+
+  const locCtx=userLoc?`Région ${document.getElementById('locVal').textContent}`:'Suisse Romande, région Genève';
+
+  const prompt=`Tu es un expert en second œuvre du bâtiment et économie circulaire. Analyse cette image. Localisation : ${locCtx}.
+Identifie TOUS les matériaux visibles. Retourne UNIQUEMENT un JSON valide, sans texte ni markdown.
+{"resume":{"nb_materiaux":<int>,"valeur_totale_min":<int>,"valeur_totale_max":<int>,"taux_recuperabilite":<int>,"description_chantier":"<texte>"},"materiaux":[{"nom":"<nom>","categorie":"<CLOISON|VITRAGE|SOL|PLAFOND|MENUISERIE|ISOLATION|STRUCTURE|TECHNIQUE|MOBILIER>","emoji":"<emoji>","etat":"<EXCELLENT|BON|MOYEN|MAUVAIS>","recuperable":true,"valeur_min_chf":<int>,"valeur_max_chf":<int>,"quantite_estimee":"<texte>","confiance":<int>,"description":"<conseil>"}],"acheteurs_locaux":[{"nom":"<entreprise Genève fictive>","type":"<Négoce|Artisan|Recycleur>","emoji":"<emoji>","distance_km":<int>,"specialite":"<texte>"}]}`;
+
+  try {
+    let result;
+
+    if(USE_BACKEND){
+      // Appel sécurisé via backend Vercel
+      const res=await fetch('/api/analyze',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image:b64,mimeType:fileType,location:locCtx})
+      });
+      result=await res.json();
+      if(result.error)throw new Error(result.error);
+    } else {
+      // Appel direct Gemini pour test local (clé visible — usage test uniquement)
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[
+            {inline_data:{mime_type:fileType,data:b64}},
+            {text:prompt}
+          ]}],
+          generationConfig:{temperature:0.2,maxOutputTokens:2048}
+        })
+      });
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error?.message||'Erreur Gemini');
+      const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      result=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    }
+
+    renderResults(result);
+    history.unshift({date:new Date().toLocaleDateString('fr-CH'),img:document.getElementById('previewImg').src,result});
+    updateHistory();
+
+  } catch(err){
+    document.getElementById('results').innerHTML=`
+      <div style="text-align:center;padding:2rem;color:var(--gris)">
+        <div style="font-size:2rem;margin-bottom:0.75rem">⚠</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.75rem">Erreur d'analyse</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;opacity:0.5;margin-top:4px">${err.message}</div>
+      </div>`;
+  } finally {
+    btn.disabled=false; btn.classList.remove('loading'); btn.textContent='◈ Relancer l\'analyse';
+  }
+}
+
+function setResult(r){
+  if(!r){
+    document.getElementById('results').style.display='none';
+    document.getElementById('emptyState').style.display='flex';
+  }
+}
+
+function renderResults(d){
+  const {resume,materiaux,acheteurs_locaux}=d;
+  const tc=resume.taux_recuperabilite>70?'#7ec99a':resume.taux_recuperabilite>40?'#e8a070':'#e87070';
+  let h=`
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700">Résultats</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--or)">${resume.nb_materiaux} matériaux</div>
+    </div>
+    <div class="sum-desc">${resume.description_chantier}</div>
+    <div class="sum-grid">
+      <div class="sum-card"><div class="sum-lbl">Valeur estimée</div><div class="sum-val">${resume.valeur_totale_min}–${resume.valeur_totale_max} <span style="font-size:0.7rem;font-weight:400">CHF</span></div></div>
+      <div class="sum-card"><div class="sum-lbl">Récupérabilité</div><div class="sum-val" style="color:${tc}">${resume.taux_recuperabilite}%</div></div>
+    </div>
+    <div class="sec-title">Matériaux identifiés</div>`;
+
+  materiaux.forEach((m,i)=>{
+    const ec=m.etat==='EXCELLENT'?'t-exc':m.etat==='BON'?'t-bon':'t-moy';
+    h+=`<div class="mat-card" style="animation-delay:${i*0.06}s">
+      <div class="mat-top">
+        <div class="mat-emoji">${m.emoji}</div>
+        <div style="flex:1"><div class="mat-name">${m.nom}</div><div class="mat-cat">${m.categorie} · ${m.quantite_estimee}</div></div>
+        <div class="mat-price">${m.valeur_min_chf}–${m.valeur_max_chf} <span style="font-size:0.62rem;font-weight:400;color:var(--gris)">CHF</span></div>
+      </div>
+      <div class="mat-tags"><span class="tag ${ec}">${m.etat}</span><span class="tag ${m.recuperable?'t-rec':'t-non'}">${m.recuperable?'✓ Récupérable':'✗ Non récup.'}</span></div>
+      <div class="conf-row">
+        <span class="conf-lbl">Confiance IA</span>
+        <div class="conf-bar"><div class="conf-fill" style="width:${m.confiance}%"></div></div>
+        <span class="conf-pct">${m.confiance}%</span>
+      </div>
+      <div class="mat-desc">${m.description}</div>
+    </div>`;
+  });
+
+  if(acheteurs_locaux?.length){
+    h+=`<div class="buyers-wrap"><div class="sec-title">◎ Acheteurs potentiels à proximité</div>`;
+    acheteurs_locaux.forEach((b,i)=>{
+      h+=`<div class="buyer-card" style="animation-delay:${i*0.07}s">
+        <div class="buyer-av">${b.emoji}</div>
+        <div style="flex:1"><div class="buyer-name">${b.nom}</div><div class="buyer-meta">${b.type} · ${b.specialite}</div></div>
+        <div class="buyer-dist">${b.distance_km} km</div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  h+=`<button class="btn-passport" onclick="toast('▣ Export PDF — Phase 2')">▣ Générer le Passeport Matériaux PDF</button>`;
+  document.getElementById('results').innerHTML=h;
+}
+
+function updateHistory(){
+  if(!history.length)return;
+  document.getElementById('histGrid').innerHTML=history.map((a,i)=>`
+    <div class="hist-card">
+      <div class="hist-thumb"><img src="${a.img}" alt=""></div>
+      <div class="hist-info">
+        <div class="hist-name">Audit #${history.length-i}</div>
+        <div class="hist-meta">${a.date} · ${a.result.resume.nb_materiaux} matériaux</div>
+        <div class="hist-val">${a.result.resume.valeur_totale_min}–${a.result.resume.valeur_totale_max} CHF</div>
+      </div>
+    </div>`).join('');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
